@@ -53,7 +53,11 @@ def main(reset):
     total = 0
     for pdf in tqdm(pdfs, desc="PDFs"):
         meta = _meta_for(pdf)
-        chunks = chunk_pdf(str(pdf), meta)
+        try:
+            chunks = chunk_pdf(str(pdf), meta)
+        except Exception as e:
+            print(f"  ! skipped {pdf.name}: {e}")
+            continue
         if not chunks:
             print(f"  ! no text extracted from {pdf.name} (scanned PDF? needs OCR)")
             continue
@@ -68,6 +72,8 @@ def main(reset):
             docs.append(c["text"])
             metas.append(c["metadata"])
 
+        # Drop this file's old chunks so edited PDFs don't leave stale text behind.
+        collection.delete(where={"source_file": pdf.name})
         collection.upsert(ids=ids, documents=docs, metadatas=metas)
         total += len(ids)
         print(f"  {pdf.name}: {len(ids)} chunks [{meta['standard']} {meta['version']}]")

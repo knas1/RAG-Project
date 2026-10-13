@@ -1,9 +1,10 @@
 """Settings for the standards search pipeline."""
+import os
 from pathlib import Path
 
-# Paths
-PDF_DIR = Path("./pdfs")
-DB_DIR = Path("./chroma_db")
+# Paths (override with env vars, e.g. on Kaggle where inputs are read-only)
+PDF_DIR = Path(os.environ.get("PDF_DIR", "./Pdfs"))
+DB_DIR = Path(os.environ.get("DB_DIR", "./chroma_db"))
 COLLECTION_NAME = "standards"
 
 # Chunking (measured in characters; ~4 chars per token)

@@ -21,6 +21,8 @@ def _tokenize(text):
 def _meta_match(meta, where):
     if not where:
         return True
+    if "$and" in where:
+        return all(_meta_match(meta, w) for w in where["$and"])
     return all(meta.get(k) == v for k, v in where.items())
 
 

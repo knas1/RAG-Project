@@ -41,6 +41,9 @@ if __name__ == "__main__":
         where["standard"] = args.standard
     if args.version:
         where["version"] = args.version
+    # Chroma needs $and when filtering on more than one field.
+    if len(where) > 1:
+        where = {"$and": [{k: v} for k, v in where.items()]}
     where = where or None
 
     if args.query:

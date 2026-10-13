@@ -5,8 +5,11 @@ import fitz
 import config
 
 # Matches clause numbers like "4.2.1 Title" and annex headings like "Annex B".
-_CLAUSE_RE = re.compile(r"^\s*(\d+(?:\.\d+){0,4})\s+(\S.{0,120})$")
+# The title must start with a capital letter, so "10 mm minimum" is not a heading.
+_CLAUSE_RE = re.compile(r"^\s*(\d{1,2}(?:\.\d+){0,4})\s+([A-Z].{0,120})$")
 _ANNEX_RE = re.compile(r"^\s*(Annex\s+[A-Z])\b(.{0,120})$", re.IGNORECASE)
+# Table-of-contents lines: "3 Terms and definitions ....... 5" or "4.2 Scope 7".
+_TOC_RE = re.compile(r"(\.{3,}|\s\d+)\s*$")
 
 
 def _looks_like_heading(line):
@@ -14,7 +17,7 @@ def _looks_like_heading(line):
     if not line or len(line) > 140:
         return None
     m = _CLAUSE_RE.match(line)
-    if m:
+    if m and not _TOC_RE.search(m.group(2)):
         return f"{m.group(1)} {m.group(2).strip()}"
     m = _ANNEX_RE.match(line)
     if m:
@@ -58,6 +61,8 @@ def _split_long(text):
         if cut > config.MAX_CHUNK_CHARS * 0.5:
             end = start + cut + 1
         parts.append(text[start:end].strip())
+        if end >= len(text):
+            break
         start = end - config.CHUNK_OVERLAP_CHARS
     return [p for p in parts if p]
 
@@ -69,7 +74,8 @@ def chunk_pdf(pdf_path, meta):
             if len(piece) < config.MIN_CHUNK_CHARS:
                 continue
             chunks.append({
-                "text": piece,
+                # Keep the clause title in the text so it is searchable.
+                "text": f"{sec['section']}\n{piece}",
                 "metadata": {
                     "standard": meta["standard"],
                     "version": meta["version"],
